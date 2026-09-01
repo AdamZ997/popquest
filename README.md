@@ -116,6 +116,26 @@ ________________
 
 The app will be available at `http://localhost:5173`.
 
+### Important Notes
+
+- Prisma Client
+    After cloning the repository, Prisma client is generated automatically when you run `npm install` thanks to the `postinstall` script. If it fails for any reason, run manually:
+    ________________________
+    |npx prisma generate    | 
+    |_______________________|
+
+- Database Setup
+    Database is not included in repository, only schema and migrations are.
+    After setting up PostgreSQL create database manually:
+    ________________________
+    |createdb popquest      | 
+    |_______________________|
+    
+    Then setup your `.env` file with correct `DATABASE_URL` and run migrations:
+     ________________________
+    |npx prisma migrate dev | 
+    |_______________________|
+
 ## Project Structure
 
 popquest/
