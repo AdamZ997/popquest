@@ -13,7 +13,7 @@ interface Category {
 const Admin = () => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'quizzes' | 'categories'>('quizzes');
+    const [activeTab, setActiveTab] = useState<'quizzes' | 'categories' | 'manage'>('quizzes');
 
     //category form state
     const [catName, setCatName] = useState('');
@@ -39,21 +39,32 @@ const Admin = () => {
         },
     ]);
 
+    //manage form state
+    const [quizzes, setQuizzes] = useState<{id: number, title: string, description: string, categoryId: number, minLevel: number, xpReward: number}[]>([]);
+    const [editingQuiz, setEditingQuiz] = useState<number | null>(null);
+    const [editingCategory, setEditingCategory] = useState<number | null>(null);
+    const [editQuizData, setEditQuizData] = useState({ title: '', description: '', minLevel: 1, xpReward: 100, categoryId: 0 });
+    const [editCatData, setEditCatData] = useState({ name: '', icon: '', description: '', minLevel: 1 });
+
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
 
     useEffect(() => {
-        const fetchCateogories = async () => {
+        const fetchData = async () => {
             try {
-                const res = await api.get('/categories');
-                setCategories(res.data);
+                const [catRes, quizRes] = await Promise.all([
+                    api.get('/categories'),
+                    api.get('/quizzes/all')
+                ]);
+                setCategories(catRes.data);
+                setQuizzes(quizRes.data);
             } catch {
-                setError('Issue with loading categories');
+                setError('Issue with loading quizzes and categories');
             } finally {
                 setLoading(false);
             }
         };
-        fetchCateogories();
+        fetchData();
     }, []);
 
     const handleCreateCategory = async () => {
@@ -75,6 +86,63 @@ const Admin = () => {
             setError('Issue with creating category');
         }
     };
+
+    const handleDeleteCategory = async (id: number) => {
+        const confirmed = window.confirm(
+            'Are you sure? Deleting this category will also delete all quizzes associated with it.'
+        );
+
+        if(!confirmed) return;
+
+        try {
+            await api.delete(`/categories/${id}`);
+            setCategories((prev) => prev.filter((c) => c.id !== id));
+            setQuizzes((prev) => prev.filter((q) => q.categoryId !== id));
+            setMessage('Category deleted successfully!');
+        } catch {
+            setError('Error with category removal');
+        }
+    };
+
+    const handleDeleteQuiz = async (id: number) => {
+        const confirmed = window.confirm(
+            'Are you sure you want to delete this quiz?'
+        );
+
+        if(!confirmed) return;
+
+        try {
+            await api.delete(`/quizzes/${id}`);
+            setQuizzes((prev) => prev.filter((q) => q.id !== id));
+            setMessage('Quiz deleted successfully!');
+        } catch {
+            setError('Error with quiz removal')
+        }
+    };
+
+    const handleUpdateCategory = async (id: number) => {
+        try {
+            await api.put(`/categories/${id}`, editCatData);
+            const res = await api.get('/categories');
+            setCategories(res.data);
+            setEditingCategory(null);
+            setMessage('Category updated successfully.');
+        } catch {
+            setError('Error with updating category');
+        }
+    };
+
+    const handleUpdateQuiz = async (id: number) => {
+        try {
+            await api.put(`/quizzes/${id}`, editQuizData);
+            const res = await api.get('/quizzes/all');
+            setQuizzes(res.data);
+            setEditingQuiz(null);
+            setMessage('Quiz updated successfully.');
+        } catch {
+            setError('Error with updating quiz');
+        }
+    }
 
     const handleQuestionChange = (index: number, value: string) => {
         const updated = [...questions];
@@ -189,6 +257,29 @@ const Admin = () => {
                     }`}
                 >
                     Create Category
+                </button>
+                <button
+                    onClick={async () => {
+                        setActiveTab('manage');
+                        try {
+                            const [catRes, quizRes] = await Promise.all([
+                                api.get('/categories'),
+                                api.get('/quizzes/all')
+                            ]);
+
+                            setCategories(catRes.data);
+                            setQuizzes(quizRes.data);
+                        } catch {
+                            setError('Error loading data');
+                        }
+                    }}
+                    className={`px-6 py-3 rounded-xl font-bold transition ${
+                        activeTab === 'manage'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-800 text-gray-400 hover:text-white'
+                    }`}
+                >
+                    Manage Content
                 </button>
             </div>
 
@@ -368,6 +459,200 @@ const Admin = () => {
                             Create quiz
                         </button>
                     </div>                        
+                </div>
+            )}
+
+            {/* Manage Content*/}
+            {activeTab === 'manage' && (
+                <div className="space-y-8">
+
+                    {/* Categories */}
+                    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
+                        <h2 className="text-2xl font-bold text-white mb-6">Categories</h2>
+                        <div className="space-y-3">
+                            {categories.map((cat) => (
+                                <div key={cat.id} className="bg-gray-800 rounded-xl p-4">
+                                    {editingCategory === cat.id ? (
+                                        <div className="space-y-3">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <input
+                                                    type="text"
+                                                    value={editCatData.name}
+                                                    onChange={(e) => setEditCatData({ ...editCatData, name: e.target.value })}
+                                                    className="bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
+                                                    placeholder="Name"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={editCatData.icon}
+                                                    onChange={(e) => setEditCatData({ ...editCatData, icon: e.target.value })}
+                                                    className="bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
+                                                    placeholder="Icon"
+                                                />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                value={editCatData.description}
+                                                onChange={(e) => setEditCatData({ ...editCatData, description: e.target.value })}
+                                                className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
+                                                placeholder="Description"
+                                            />
+                                            <NumberInput
+                                                label="Minimum level"
+                                                value={editCatData.minLevel}
+                                                onChange={(val) => setEditCatData({ ...editCatData, minLevel: val })}
+                                                min={1}
+                                                max={5}
+                                            />
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => handleUpdateCategory(cat.id)}
+                                                    className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition"
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingCategory(null)}
+                                                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-2xl">{cat.icon}</span>
+                                                <div>
+                                                    <p className="text-white font-semibold">{cat.name}</p>
+                                                    <p className="text-gray-400 text-sm">{cat.description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingCategory(cat.id);
+                                                        setEditCatData({ name: cat.name, icon: cat.icon, description: cat.description, minLevel: cat.minLevel });
+                                                    }}
+                                                    className="text-purple-400 hover:text-purple-300 transition"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteCategory(cat.id)}
+                                                    className="text-red-400 hover:text-red-300 transition"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Quizzes */}
+                    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
+                        <h2 className="text-2xl font-bold text-white mb-6">Quizzes</h2>
+                        <div className="space-y-3">
+                            {quizzes.map((quiz) => (
+                                <div key={quiz.id} className="bg-gray-800 rounded-xl p-4">
+                                    {editingQuiz === quiz.id ? (
+                                        <div className="space-y-3">
+                                            <input
+                                                type="text"
+                                                value={editQuizData.title}
+                                                onChange={(e) => setEditQuizData({ ...editQuizData, title:e.target.value })}
+                                                className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
+                                                placeholder="Title"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={editQuizData.description}
+                                                onChange={(e) => setEditQuizData({ ...editQuizData, description:e.target.value })}
+                                                className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
+                                                placeholder="Description"
+                                            />
+                                            <select
+                                                value={editQuizData.categoryId}
+                                                onChange={(e) => setEditQuizData({ ...editQuizData, categoryId: Number(e.target.value) })}
+                                                className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
+                                            >
+                                                {categories.map((cat) => (
+                                                    <option key={cat.id} value={cat.id}>
+                                                        {cat.icon} {cat.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <NumberInput
+                                                    label="Minimum level"
+                                                    value={editQuizData.minLevel}
+                                                    onChange={(val) => setEditQuizData({ ...editQuizData, minLevel: val })}
+                                                    min={1}
+                                                    max={5}
+                                                />
+                                                <div>
+                                                    <label className="block text-gray-300 mb-2">XP Reward</label>
+                                                    <input
+                                                        type="number"
+                                                        value={editQuizData.xpReward}
+                                                        onChange={(e) => setEditQuizData({ ...editQuizData, xpReward: Number(e.target.value) })}
+                                                        className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => handleUpdateQuiz(quiz.id)}
+                                                    className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition"
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingQuiz(null)}
+                                                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-white font-semibold">{quiz.title}</p>
+                                                <p className="text-gray-400 text-sm">{quiz.description}</p>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingQuiz(quiz.id);
+                                                        setEditQuizData({
+                                                            title: quiz.title,
+                                                            description: quiz.description,
+                                                            categoryId: quiz.categoryId,
+                                                            minLevel: quiz.minLevel,
+                                                            xpReward: quiz.xpReward
+                                                        });
+                                                    }}
+                                                    className="text-purple-400 hover:text-purple-300 transition"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteQuiz(quiz.id)}
+                                                    className="text-red-400 hover:text-red-300 transition"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

@@ -95,7 +95,7 @@ export const createQuiz = async (req: Request, res: Response) => {
         res.status(201).json(quiz);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Server issue'})
+        res.status(500).json({ error: 'Server issue'});
     }
 };
 
@@ -169,7 +169,7 @@ export const submitQuiz = async (req: AuthRequest, res: Response) => {
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Server issue'})
+        res.status(500).json({ error: 'Server issue'});
     }
 };
 
@@ -187,7 +187,7 @@ export const updateQuiz = async (req: Request, res: Response) => {
         res.json(quiz);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Server issue'})
+        res.status(500).json({ error: 'Server issue'});
     }
 };
 
@@ -226,6 +226,20 @@ export const deleteQuiz = async (req: Request, res: Response) => {
         res.json({ message: 'Quiz removed' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Server issue'})
+        res.status(500).json({ error: 'Server issue'});
+    }
+};
+
+export const getAllQuizzes = async (req: Request, res: Response) => {
+    try {
+        const quizzes = await prisma.quiz.findMany({
+            include: { category: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        
+        res.json(quizzes);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server issue'});
     }
 };
