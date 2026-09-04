@@ -43,10 +43,12 @@ Database consists of six tables:
 
 - Quizzes
     1. [GET] `/api/quizzes` (Get all available quizzes) | Requires auth? Yes
-    2. [GET] `/api/quizzes/:id` (Get a single quiz with questions) | Requires auth? Yes
-    3. [POST] `/api/quizzes` (Create a new quiz) | Requires auth? Yes, Admin
-    4. [PUT] `/api/quizzes/:id` (Update a quiz) | Requires auth? Yes, Admin
-    4. [POST] `/api/quizzes/:id/submit` (Submit quiz answers) | Requires auth? Yes
+    2. [GET] `/api/quizzes/all` (Get all available quizzes without taking user level into account) | Requires auth? Yes, Admin
+    3. [GET] `/api/quizzes/:id` (Get a single quiz with questions) | Requires auth? Yes
+    4. [POST] `/api/quizzes` (Create a new quiz) | Requires auth? Yes, Admin
+    5. [PUT] `/api/quizzes/:id` (Update a quiz) | Requires auth? Yes, Admin
+    6. [POST] `/api/quizzes/:id/submit` (Submit quiz answers) | Requires auth? Yes
+    7. [DELETE] `/api/quizzes/:id` (Delete a quiz) | Requires auth? Yes, Admin
 
 
 ## User Roles
@@ -60,7 +62,7 @@ Database consists of six tables:
 - ADMIN:
     * All USER permissions
     * Create, edit and delete categories
-    * Create and edit quizzes with questions and answers
+    * Create, edit and delete quizzes with questions and answers
     * Admin panel access
 
 
@@ -92,8 +94,8 @@ ________________
 |_______________|
 
 Create '.env' file in 'backend/' folder:
-    DATABASE_URL="postgresql://popquest_user:Beograd123@localhost:5432/popquest"
-    JWT_SECRET="popquest_secret_0001"
+    DATABASE_URL="postgresql://YOUR_USERNAME:YOUR_PASSWORD@localhost:5432/popquest"
+    JWT_SECRET="your_secret_key"
     PORT=3000
 
 Run database migrations:
