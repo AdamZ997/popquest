@@ -172,3 +172,60 @@ export const submitQuiz = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ error: 'Server issue'})
     }
 };
+
+//only admin can update quiz
+export const updateQuiz = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { title, description, categoryId, minLevel, xpReward } = req.body;
+
+        const quiz = await prisma.quiz.update({
+            where: { id: Number(id) },
+            data: { title, description, categoryId, minLevel, xpReward }
+        });
+
+        res.json(quiz);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server issue'})
+    }
+};
+
+//only admin can delete quiz
+export const deleteQuiz = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        //delete attempts
+        await prisma.quizAttempt.deleteMany({
+            where: { quizId: Number(id) }
+        });
+
+        //find all questions
+        const questions = await prisma.question.findMany({
+            where: { quizId: Number(id) }
+        });
+
+        //delete answers for each question
+        for (const question of questions) {
+            await prisma.answer.deleteMany({
+                where: { questionId: question.id }
+            });
+        }
+
+        //delete questions
+        await prisma.question.deleteMany({
+            where: { quizId: Number(id)}
+        });
+
+        //delete quiz
+        await prisma.quiz.delete({
+            where: { id: Number(id) }
+        });
+
+        res.json({ message: 'Quiz removed' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server issue'})
+    }
+};
